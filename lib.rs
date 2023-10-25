@@ -16,7 +16,9 @@ mod azeromessage {
     #[ink(storage)]
     pub struct AzeroMessage {
         owner: AccountId,
-        fees: u128
+        fees: u128,
+        bulk_base_fee: u128,
+        bulk_var_fee: u128
     }
 
     #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -37,7 +39,9 @@ mod azeromessage {
             let caller = Self::env().caller();
             Self {
                 owner: caller,
-                fees: 50_000_000_000
+                fees: 50_000_000_000,
+                bulk_base_fee: 100_000_000_000,
+                bulk_var_fee: 10_000_000_000,
             }
         }
 
@@ -56,8 +60,26 @@ mod azeromessage {
                 encrypted: encrypted
             });
             Ok(())
-            
         }
+
+        #[ink(message, payable)]
+        pub fn bulk_send_message(&mut self, addresses: Vec<AccountId>, message: String, encrypted: bool ) -> Result<()> {
+            let _transferred = self.env().transferred_value();
+            let amount_required = self.bulk_base_fee + self.bulk_var_fee * addresses.len() as u128;
+            if _transferred < self.fees {
+                return Err(Error::InsufficientTransfer);
+            }
+            for address in addresses {
+                Self::env().emit_event(MessageSent {
+                    from: self.env().caller(),
+                    to: address,
+                    message: message.clone(),
+                    encrypted: encrypted
+                })
+            }
+            Ok(())
+        }
+
         /// Function to collect the fees accumulated in the contract.
         #[ink(message)]
         pub fn collect_fees(&mut self) {
