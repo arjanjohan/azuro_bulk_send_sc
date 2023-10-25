@@ -4,6 +4,7 @@
 #[ink::contract]
 mod azeromessage {
     use ink::prelude::string::String;
+    use ink::prelude::vec::Vec;
 
     #[ink(event)]
     pub struct MessageSent {
@@ -66,7 +67,7 @@ mod azeromessage {
         pub fn bulk_send_message(&mut self, addresses: Vec<AccountId>, message: String, encrypted: bool ) -> Result<()> {
             let _transferred = self.env().transferred_value();
             let amount_required = self.bulk_base_fee + self.bulk_var_fee * addresses.len() as u128;
-            if _transferred < self.fees {
+            if _transferred < amount_required {
                 return Err(Error::InsufficientTransfer);
             }
             for address in addresses {
